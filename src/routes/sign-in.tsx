@@ -19,6 +19,7 @@ import {
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Separator } from '~/components/ui/separator';
+import { AuthLayout } from '~/components/crm/auth-layout';
 
 export const Route = createFileRoute('/sign-in')({
   component: SignInPage
@@ -50,14 +51,14 @@ function SignInPage() {
       });
       if (error) throw new Error(error.message ?? 'Failed to sign in');
     },
-    onSuccess: () => navigate({ to: '/dashboard' })
+    onSuccess: () => navigate({ to: '/dashboard', search: { view: 'dashboard', record: '' } })
   });
 
   return (
-    <div className='flex min-h-svh items-center justify-center p-4'>
-      <Card className='w-full max-w-sm'>
+    <AuthLayout>
+      <Card className='orbit-auth-card w-full max-w-sm'>
         <CardHeader>
-          <CardTitle>Sign in</CardTitle>
+          <CardTitle>Welcome back to your orbit.</CardTitle>
           <CardDescription>
             Enter your email and we’ll send you a one-time sign-in code.
           </CardDescription>
@@ -173,6 +174,6 @@ function SignInPage() {
           </p>
         </CardContent>
       </Card>
-    </div>
+    </AuthLayout>
   );
 }

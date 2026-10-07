@@ -12,6 +12,7 @@ import {
 } from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
+import { AuthLayout } from '~/components/crm/auth-layout';
 
 export const Route = createFileRoute('/sign-up')({
   component: SignUpPage
@@ -34,16 +35,16 @@ function SignUpPage() {
       });
       if (error) throw new Error(error.message ?? 'Failed to create account');
     },
-    onSuccess: () => navigate({ to: '/dashboard' })
+    onSuccess: () => navigate({ to: '/dashboard', search: { view: 'dashboard', record: '' } })
   });
 
   return (
-    <div className='flex min-h-svh items-center justify-center p-4'>
-      <Card className='w-full max-w-sm'>
+    <AuthLayout>
+      <Card className='orbit-auth-card w-full max-w-sm'>
         <CardHeader>
-          <CardTitle>Create an account</CardTitle>
+          <CardTitle>A little room to grow.</CardTitle>
           <CardDescription>
-            Sign up with your email and password.
+            Create your own private CRM workspace.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -124,6 +125,6 @@ function SignUpPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </AuthLayout>
   );
 }
