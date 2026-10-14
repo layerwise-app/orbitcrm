@@ -1,15 +1,9 @@
 import { useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
+import { ArrowLeft } from 'lucide-react';
 import { authClient } from '~/lib/auth-client';
 import { Button } from '~/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import {
@@ -17,10 +11,18 @@ import {
   InputOTPGroup,
   InputOTPSlot
 } from '~/components/ui/input-otp';
+import { AuthLayout } from '~/components/crm/auth-layout';
 
 export const Route = createFileRoute('/forgot-password')({
   component: ForgotPasswordPage
 });
+
+const backToSignIn = (
+  <Link to='/sign-in' className='auth-back'>
+    <ArrowLeft size={14} />
+    Back to sign in
+  </Link>
+);
 
 function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -51,156 +53,147 @@ function ForgotPasswordPage() {
 
   if (resetPassword.isSuccess) {
     return (
-      <div className='flex min-h-svh items-center justify-center p-4'>
-        <Card className='w-full max-w-sm'>
-          <CardHeader>
-            <CardTitle>Password reset</CardTitle>
-            <CardDescription>
-              Your password has been updated. You can now sign in.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className='w-full'>
-              <Link to='/sign-in'>Back to sign in</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <AuthLayout
+        title='Password updated'
+        description='Sign in with your new password.'
+      >
+        <Button asChild size='lg' className='auth-submit'>
+          <Link to='/sign-in'>Back to sign in</Link>
+        </Button>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className='flex min-h-svh items-center justify-center p-4'>
-      <Card className='w-full max-w-sm'>
-        <CardHeader>
-          <CardTitle>Reset your password</CardTitle>
-          <CardDescription>
-            We’ll send a six-digit reset code to your email.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className='flex flex-col gap-4'>
-          <form
-            className='flex flex-col gap-4'
-            onSubmit={(event) => {
-              event.preventDefault();
-              setOtp('');
-              resetPassword.reset();
-              requestReset.mutate();
-            }}
-          >
-            <div className='flex flex-col gap-2'>
-              <Label htmlFor='email'>Email</Label>
-              <div className='flex gap-2'>
-                <Input
-                  id='email'
-                  type='email'
-                  autoComplete='email'
-                  required
-                  value={email}
-                  onChange={(event) => {
-                    setEmail(event.target.value);
-                    setOtp('');
-                    requestReset.reset();
-                    resetPassword.reset();
-                  }}
-                />
-                <Button type='submit' disabled={requestReset.isPending}>
-                  {requestReset.isPending
-                    ? 'Sending…'
-                    : requestReset.isSuccess
-                      ? 'Resend code'
-                      : 'Send code'}
-                </Button>
-              </div>
-            </div>
-            {requestReset.error ? (
-              <p className='text-sm text-destructive'>
-                {requestReset.error.message}
-              </p>
-            ) : null}
-          </form>
-          {requestReset.isSuccess ? (
-            <form
-              className='flex flex-col gap-4'
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (!passwordsMatch) return;
-                resetPassword.mutate();
+    <AuthLayout
+      title='Reset your password'
+      description='We’ll email you a 6-digit reset code.'
+      footer={backToSignIn}
+    >
+      <form
+        className='auth-fields'
+        onSubmit={(event) => {
+          event.preventDefault();
+          setOtp('');
+          resetPassword.reset();
+          requestReset.mutate();
+        }}
+      >
+        <div className='auth-field'>
+          <Label htmlFor='email'>Email</Label>
+          <div className='auth-inline-form'>
+            <Input
+              id='email'
+              type='email'
+              autoComplete='email'
+              placeholder='you@company.com'
+              autoFocus
+              required
+              value={email}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setOtp('');
+                requestReset.reset();
+                resetPassword.reset();
+              }}
+            />
+            <Button
+              type='submit'
+              size='lg'
+              variant={requestReset.isSuccess ? 'outline' : 'default'}
+              disabled={requestReset.isPending}
+            >
+              {requestReset.isPending
+                ? 'Sending…'
+                : requestReset.isSuccess
+                  ? 'Resend code'
+                  : 'Send code'}
+            </Button>
+          </div>
+        </div>
+        {requestReset.error ? (
+          <p className='auth-error' role='alert'>{requestReset.error.message}</p>
+        ) : null}
+      </form>
+      {requestReset.isSuccess ? (
+        <form
+          className='auth-fields auth-step'
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!passwordsMatch) return;
+            resetPassword.mutate();
+          }}
+        >
+          <p className='auth-hint'>
+            Enter the code sent to <strong>{email}</strong> and choose a new password.
+          </p>
+          <div className='auth-field'>
+            <Label htmlFor='reset-code'>Reset code</Label>
+            <InputOTP
+              id='reset-code'
+              containerClassName='auth-otp'
+              maxLength={6}
+              value={otp}
+              onChange={(value) => {
+                setOtp(value);
+                resetPassword.reset();
               }}
             >
-              <p className='text-sm text-muted-foreground'>
-                Enter the code sent to {email} and choose a new password.
-              </p>
-              <InputOTP
-                maxLength={6}
-                value={otp}
-                onChange={(value) => {
-                  setOtp(value);
-                  resetPassword.reset();
-                }}
-              >
-                <InputOTPGroup>
-                  {Array.from({ length: 6 }, (_, index) => (
-                    <InputOTPSlot key={index} index={index} />
-                  ))}
-                </InputOTPGroup>
-              </InputOTP>
-              <div className='flex flex-col gap-2'>
-                <Label htmlFor='password'>New password</Label>
-                <Input
-                  id='password'
-                  type='password'
-                  autoComplete='new-password'
-                  minLength={8}
-                  required
-                  value={password}
-                  onChange={(event) => {
-                    setPassword(event.target.value);
-                    resetPassword.reset();
-                  }}
-                />
-              </div>
-              <div className='flex flex-col gap-2'>
-                <Label htmlFor='confirm-password'>Confirm new password</Label>
-                <Input
-                  id='confirm-password'
-                  type='password'
-                  autoComplete='new-password'
-                  minLength={8}
-                  required
-                  aria-invalid={confirmPassword ? !passwordsMatch : undefined}
-                  value={confirmPassword}
-                  onChange={(event) => {
-                    setConfirmPassword(event.target.value);
-                    resetPassword.reset();
-                  }}
-                />
-                {confirmPassword && !passwordsMatch ? (
-                  <p className='text-sm text-destructive'>
-                    Passwords do not match.
-                  </p>
-                ) : null}
-              </div>
-              {resetPassword.error ? (
-                <p className='text-sm text-destructive'>
-                  {resetPassword.error.message}
-                </p>
-              ) : null}
-              <Button
-                type='submit'
-                disabled={
-                  otp.length < 6 || !passwordsMatch || resetPassword.isPending
-                }
-              >
-                {resetPassword.isPending ? 'Resetting…' : 'Reset password'}
-              </Button>
-            </form>
+              <InputOTPGroup className='w-full'>
+                {Array.from({ length: 6 }, (_, index) => (
+                  <InputOTPSlot key={index} index={index} />
+                ))}
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+          <div className='auth-field'>
+            <Label htmlFor='password'>New password</Label>
+            <Input
+              id='password'
+              type='password'
+              autoComplete='new-password'
+              placeholder='At least 8 characters'
+              minLength={8}
+              required
+              value={password}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                resetPassword.reset();
+              }}
+            />
+          </div>
+          <div className='auth-field'>
+            <Label htmlFor='confirm-password'>Confirm new password</Label>
+            <Input
+              id='confirm-password'
+              type='password'
+              autoComplete='new-password'
+              minLength={8}
+              required
+              aria-invalid={confirmPassword ? !passwordsMatch : undefined}
+              value={confirmPassword}
+              onChange={(event) => {
+                setConfirmPassword(event.target.value);
+                resetPassword.reset();
+              }}
+            />
+            {confirmPassword && !passwordsMatch ? (
+              <p className='auth-error' role='alert'>Passwords do not match.</p>
+            ) : null}
+          </div>
+          {resetPassword.error ? (
+            <p className='auth-error' role='alert'>{resetPassword.error.message}</p>
           ) : null}
-          <Button variant='link' asChild className='h-auto p-0'>
-            <Link to='/sign-in'>Back to sign in</Link>
+          <Button
+            type='submit'
+            size='lg'
+            className='auth-submit'
+            disabled={otp.length < 6 || !passwordsMatch || resetPassword.isPending}
+          >
+            {resetPassword.isPending ? 'Resetting…' : 'Reset password'}
           </Button>
-        </CardContent>
-      </Card>
-    </div>
+        </form>
+      ) : null}
+    </AuthLayout>
   );
 }

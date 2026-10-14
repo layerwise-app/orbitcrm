@@ -1,25 +1,25 @@
 import { Link } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
+import { BrandMark } from '~/components/brand'
+import { Button } from '~/components/ui/button'
 
-export function NotFound({ children }: { children?: any }) {
+export function NotFound({ children }: { children?: ReactNode }) {
   return (
-    <div className="space-y-2 p-2">
-      <div className="text-gray-600 dark:text-gray-400">
-        {children || <p>The page you are looking for does not exist.</p>}
+    <main className="status-page">
+      <BrandMark size={28} />
+      <span className="status-code tnum">404</span>
+      <h1>Page not found</h1>
+      <div className="status-text">
+        {children || <p>This page doesn’t exist or has moved.</p>}
       </div>
-      <p className="flex items-center gap-2 flex-wrap">
-        <button
-          onClick={() => window.history.back()}
-          className="bg-emerald-500 text-white px-2 py-1 rounded-sm uppercase font-black text-sm"
-        >
+      <div className="status-actions">
+        <Button variant="outline" size="lg" onClick={() => window.history.back()}>
           Go back
-        </button>
-        <Link
-          to="/"
-          className="bg-cyan-600 text-white px-2 py-1 rounded-sm uppercase font-black text-sm"
-        >
-          Start Over
-        </Link>
-      </p>
-    </div>
+        </Button>
+        <Button asChild size="lg">
+          <Link to="/">Go to home</Link>
+        </Button>
+      </div>
+    </main>
   )
 }

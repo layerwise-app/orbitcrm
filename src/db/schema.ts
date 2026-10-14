@@ -102,6 +102,9 @@ export const crmRecords = sqliteTable('crm_records', {
   companyId: text('company_id'),
   contactId: text('contact_id'),
   dealId: text('deal_id'),
+  // Free-text assignee so small teams can split a pipeline without seats.
+  owner: text('owner').notNull().default(''),
+  lostReason: text('lost_reason').notNull().default(''),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
 }, (table) => [index('crm_records_workspace_kind').on(table.workspaceId, table.kind)]);
@@ -110,6 +113,8 @@ export const crmNotes = sqliteTable('crm_notes', {
   id: text('id').primaryKey(),
   workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
   recordId: text('record_id').notNull().references(() => crmRecords.id, { onDelete: 'cascade' }),
+  // A note, or a logged call, email, or meeting on the record timeline.
+  type: text('type', { enum: ['note', 'call', 'email', 'meeting'] }).notNull().default('note'),
   body: text('body').notNull(),
   author: text('author').notNull(),
   createdAt: integer('created_at').notNull(),

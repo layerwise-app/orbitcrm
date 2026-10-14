@@ -1,7 +1,60 @@
 import { Link } from '@tanstack/react-router';
-import { ArrowLeft, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { BrandLink } from '~/components/brand';
+import { openPipeline, pipeline, usd, weightedForecast } from '~/components/landing/data';
+import { StageColumn } from '~/components/landing/product-shot';
 
-export function AuthLayout({ children }: { children: ReactNode }) {
-  return <main className='orbit-auth'><section className='auth-story'><Link to='/' className='crm-brand'><span className='orbit-mark'><span /></span><span>orbit<span className='brand-crm'>crm</span></span></Link><div className='auth-story-content'><span className='auth-eyebrow'><Sparkles size={16} />A LITTLE MORE CONNECTED</span><h1>Good relationships.<br />Great possibilities.</h1><p>Your people, your plans, your next big thing.<br />Bring it all into one connected workspace.</p><div className='auth-orbits' aria-hidden='true'><span /><span /><span /><i /></div></div><span className='auth-story-footer'>Less busywork. More human connections.</span></section><section className='auth-form-side'><Link to='/demo' search={{ view: 'dashboard', record: '' }} className='auth-back'><ArrowLeft size={15} />Back to the demo</Link>{children}<p className='auth-privacy'>A private workspace, just for you.</p></section></main>;
+type AuthLayoutProps = {
+  title: string;
+  description?: ReactNode;
+  footer?: ReactNode;
+  children: ReactNode;
+};
+
+/** Split layout shared by every auth page: form on the left, product preview on the right. */
+export function AuthLayout({ title, description, footer, children }: AuthLayoutProps) {
+  return (
+    <div className='auth'>
+      <main className='auth-main'>
+        <header className='auth-top'>
+          <BrandLink />
+          <Link to='/demo' search={{ view: 'dashboard', record: '' }} className='auth-top-link'>View demo</Link>
+        </header>
+        <div className='auth-body'>
+          <div className='auth-form'>
+            <h1>{title}</h1>
+            {description && <p className='auth-description'>{description}</p>}
+            <div className='auth-content'>{children}</div>
+            {footer && <div className='auth-footer'>{footer}</div>}
+          </div>
+        </div>
+        <p className='auth-legal'>© 2026 Orbit CRM</p>
+      </main>
+      <AuthPreview />
+    </div>
+  );
+}
+
+const previewStages = pipeline.filter(stage => stage.id === 'proposal' || stage.id === 'negotiation');
+
+function AuthPreview() {
+  return (
+    <aside className='auth-aside' aria-hidden='true'>
+      <div className='auth-preview'>
+        <div className='auth-preview-metrics'>
+          <div className='lp-metric'>
+            <span>Open pipeline</span>
+            <strong className='tnum'>{usd(openPipeline)}</strong>
+          </div>
+          <div className='lp-metric is-accent'>
+            <span>Weighted forecast</span>
+            <strong className='tnum'>{usd(weightedForecast)}</strong>
+          </div>
+        </div>
+        <div className='auth-preview-board'>
+          {previewStages.map(stage => <StageColumn key={stage.id} stage={stage} />)}
+        </div>
+      </div>
+    </aside>
+  );
 }

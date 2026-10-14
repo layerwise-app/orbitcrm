@@ -3,13 +3,6 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
 import { authClient } from '~/lib/auth-client';
 import { Button } from '~/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '~/components/ui/card';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { AuthLayout } from '~/components/crm/auth-layout';
@@ -39,92 +32,87 @@ function SignUpPage() {
   });
 
   return (
-    <AuthLayout>
-      <Card className='orbit-auth-card w-full max-w-sm'>
-        <CardHeader>
-          <CardTitle>A little room to grow.</CardTitle>
-          <CardDescription>
-            Create your own private CRM workspace.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            className='flex flex-col gap-4'
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!passwordsMatch) return;
-              signUp.mutate();
-            }}
-          >
-            <div className='flex flex-col gap-2'>
-              <Label htmlFor='name'>Name</Label>
-              <Input
-                id='name'
-                autoComplete='name'
-                required
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </div>
-            <div className='flex flex-col gap-2'>
-              <Label htmlFor='email'>Email</Label>
-              <Input
-                id='email'
-                type='email'
-                autoComplete='email'
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            </div>
-            <div className='flex flex-col gap-2'>
-              <Label htmlFor='password'>Password</Label>
-              <Input
-                id='password'
-                type='password'
-                autoComplete='new-password'
-                minLength={8}
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </div>
-            <div className='flex flex-col gap-2'>
-              <Label htmlFor='confirm-password'>Confirm password</Label>
-              <Input
-                id='confirm-password'
-                type='password'
-                autoComplete='new-password'
-                minLength={8}
-                required
-                aria-invalid={confirmPassword ? !passwordsMatch : undefined}
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-              />
-              {confirmPassword && !passwordsMatch ? (
-                <p className='text-sm text-destructive'>
-                  Passwords do not match.
-                </p>
-              ) : null}
-            </div>
-            {signUp.error ? (
-              <p className='text-sm text-destructive'>{signUp.error.message}</p>
-            ) : null}
-            <Button
-              type='submit'
-              disabled={!passwordsMatch || signUp.isPending}
-            >
-              {signUp.isPending ? 'Creating account…' : 'Create account'}
-            </Button>
-            <p className='text-center text-sm text-muted-foreground'>
-              Already have an account?{' '}
-              <Link to='/sign-in' className='underline'>
-                Sign in
-              </Link>
-            </p>
-          </form>
-        </CardContent>
-      </Card>
+    <AuthLayout
+      title='Create your workspace'
+      description='Track contacts, deals, and forecasts in one place.'
+      footer={
+        <>
+          Already have an account? <Link to='/sign-in'>Sign in</Link>
+        </>
+      }
+    >
+      <form
+        className='auth-fields'
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!passwordsMatch) return;
+          signUp.mutate();
+        }}
+      >
+        <div className='auth-field'>
+          <Label htmlFor='name'>Full name</Label>
+          <Input
+            id='name'
+            autoComplete='name'
+            autoFocus
+            required
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </div>
+        <div className='auth-field'>
+          <Label htmlFor='email'>Work email</Label>
+          <Input
+            id='email'
+            type='email'
+            autoComplete='email'
+            placeholder='you@company.com'
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+        </div>
+        <div className='auth-field'>
+          <Label htmlFor='password'>Password</Label>
+          <Input
+            id='password'
+            type='password'
+            autoComplete='new-password'
+            placeholder='At least 8 characters'
+            minLength={8}
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </div>
+        <div className='auth-field'>
+          <Label htmlFor='confirm-password'>Confirm password</Label>
+          <Input
+            id='confirm-password'
+            type='password'
+            autoComplete='new-password'
+            minLength={8}
+            required
+            aria-invalid={confirmPassword ? !passwordsMatch : undefined}
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+          />
+          {confirmPassword && !passwordsMatch ? (
+            <p className='auth-error' role='alert'>Passwords do not match.</p>
+          ) : null}
+        </div>
+        {signUp.error ? (
+          <p className='auth-error' role='alert'>{signUp.error.message}</p>
+        ) : null}
+        <Button
+          type='submit'
+          size='lg'
+          className='auth-submit'
+          disabled={!passwordsMatch || signUp.isPending}
+        >
+          {signUp.isPending ? 'Creating account…' : 'Create account'}
+        </Button>
+      </form>
     </AuthLayout>
   );
 }

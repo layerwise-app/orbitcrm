@@ -1,11 +1,12 @@
 import {
-  ErrorComponent,
   Link,
   rootRouteId,
   useMatch,
   useRouter,
 } from '@tanstack/react-router'
 import type { ErrorComponentProps } from '@tanstack/react-router'
+import { BrandMark } from '~/components/brand'
+import { Button } from '~/components/ui/button'
 
 export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
   const router = useRouter()
@@ -17,37 +18,43 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
   console.error(error)
 
   return (
-    <div className="min-w-0 flex-1 p-4 flex flex-col items-center justify-center gap-6">
-      <ErrorComponent error={error} />
-      <div className="flex gap-2 items-center flex-wrap">
-        <button
+    <main className="status-page">
+      <BrandMark size={28} />
+      <h1>Something went wrong</h1>
+      <p className="status-text">
+        An unexpected error interrupted this page. Try again, or head back.
+      </p>
+      {error instanceof Error && error.message ? (
+        <pre className="status-detail">{error.message}</pre>
+      ) : null}
+      <div className="status-actions">
+        <Button
+          variant="outline"
+          size="lg"
           onClick={() => {
             router.invalidate()
           }}
-          className={`px-2 py-1 bg-gray-600 dark:bg-gray-700 rounded-sm text-white uppercase font-extrabold`}
         >
-          Try Again
-        </button>
+          Try again
+        </Button>
         {isRoot ? (
-          <Link
-            to="/"
-            className={`px-2 py-1 bg-gray-600 dark:bg-gray-700 rounded-sm text-white uppercase font-extrabold`}
-          >
-            Home
-          </Link>
+          <Button asChild size="lg">
+            <Link to="/">Go to home</Link>
+          </Button>
         ) : (
-          <Link
-            to="/"
-            className={`px-2 py-1 bg-gray-600 dark:bg-gray-700 rounded-sm text-white uppercase font-extrabold`}
-            onClick={(e) => {
-              e.preventDefault()
-              window.history.back()
-            }}
-          >
-            Go Back
-          </Link>
+          <Button asChild size="lg">
+            <Link
+              to="/"
+              onClick={(e) => {
+                e.preventDefault()
+                window.history.back()
+              }}
+            >
+              Go back
+            </Link>
+          </Button>
         )}
       </div>
-    </div>
+    </main>
   )
 }

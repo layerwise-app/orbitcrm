@@ -5,6 +5,8 @@ import { seo } from '~/utils/seo';
 
 export const Route = createFileRoute('/demo')({
   validateSearch: validateCrmSearch,
+  // Demo data is generated from the visitor's clock, so server and client renders would never match.
+  ssr: false,
   head: () => ({ meta: seo({ title: 'Try the Demo · Orbit CRM', description: 'Explore Orbit with sample contacts, deals, and tasks. No account needed.' }) }),
   component: DemoPage,
 });
