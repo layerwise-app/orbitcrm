@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { BrandLink } from '~/components/brand';
+import { PoweredByLayerwise } from '~/components/powered-by-layerwise';
 import { DemoCta, PrimaryCta } from './cta-links';
 
 export function ClosingCta({ signedIn }: { signedIn: boolean }) {
@@ -25,6 +26,9 @@ export function LandingFooter() {
           <Link to='/sign-in'>Sign in</Link>
         </nav>
         <small>© 2026 Orbit CRM</small>
+      </div>
+      <div className='lp-footer-badge'>
+        <PoweredByLayerwise />
       </div>
     </footer>
   );
