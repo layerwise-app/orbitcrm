@@ -1,5 +1,12 @@
 # Orbit CRM
 
+<a href="https://layerwise.app">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://layerwise.app/powered-by-dark.png" />
+    <img src="https://layerwise.app/powered-by.png" alt="Powered by Layerwise" width="320" />
+  </picture>
+</a>
+
 A focused CRM built with React, TypeScript, TanStack Start and Query, Tailwind,
 shadcn/ui, Better Auth, and Drizzle on Cloudflare D1.
 

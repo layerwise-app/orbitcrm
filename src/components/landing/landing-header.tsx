@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { BrandLink } from '~/components/brand';
 import { PrimaryCta } from './cta-links';
+import { GitHubButton } from './github-button';
 
 const anchors = [
   { href: '#pipeline', label: 'Pipeline' },
@@ -18,6 +19,7 @@ export function LandingHeader({ signedIn }: { signedIn: boolean }) {
           <Link to='/demo' search={{ view: 'dashboard', record: '' }}>Demo</Link>
         </nav>
         <div className='lp-header-actions'>
+          <GitHubButton />
           {!signedIn && <Link to='/sign-in' className='lp-header-signin'>Sign in</Link>}
           <PrimaryCta signedIn={signedIn} size='sm' />
         </div>
