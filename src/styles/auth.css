@@ -211,9 +211,17 @@
   outline-offset: 2px;
 }
 .auth-legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
   margin: 0;
   color: var(--ink-4);
   font-size: 12.5px;
+}
+.auth-legal small {
+  font-size: inherit;
 }
 
 .auth-aside {

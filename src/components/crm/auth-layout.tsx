@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { BrandLink } from '~/components/brand';
+import { PoweredByLayerwise } from '~/components/powered-by-layerwise';
 import { openPipeline, pipeline, usd, weightedForecast } from '~/components/landing/data';
 import { StageColumn } from '~/components/landing/product-shot';
 
@@ -28,7 +29,10 @@ export function AuthLayout({ title, description, footer, children }: AuthLayoutP
             {footer && <div className='auth-footer'>{footer}</div>}
           </div>
         </div>
-        <p className='auth-legal'>© 2026 Orbit CRM</p>
+        <footer className='auth-legal'>
+          <small>© 2026 Orbit CRM</small>
+          <PoweredByLayerwise />
+        </footer>
       </main>
       <AuthPreview />
     </div>

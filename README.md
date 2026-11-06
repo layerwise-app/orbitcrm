@@ -1,14 +1,19 @@
+<a href="https://layerwise.app"><picture><source media="(prefers-color-scheme: dark)" srcset="https://layerwise.app/powered-by-dark.png"><img src="https://layerwise.app/powered-by.png" alt="Powered by Layerwise" width="174" height="28"></picture></a>
+
 # Orbit CRM
 
-<a href="https://layerwise.app">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://layerwise.app/powered-by-dark.png" />
-    <img src="https://layerwise.app/powered-by.png" alt="Powered by Layerwise" width="320" />
-  </picture>
-</a>
+Orbit is a fast, focused CRM for small sales teams that want their contacts,
+pipeline, forecast, and follow-ups in one place without the weight of an
+enterprise tool. Visitors can try the full app in a demo workspace with sample
+data and no account, or sign up for a private workspace of their own. In it
+they can move deals across a drag-and-drop pipeline, see open and weighted
+revenue on an overview dashboard, log calls, emails, meetings, and notes on
+each record, attach files, manage tasks, and import or export contacts as CSV.
 
-A focused CRM built with React, TypeScript, TanStack Start and Query, Tailwind,
-shadcn/ui, Better Auth, and Drizzle on Cloudflare D1.
+Try the live demo at [orbitcrm.layerwise.site](https://orbitcrm.layerwise.site/).
+
+Orbit was built with [Layerwise](https://layerwise.app), and you can open it in
+Layerwise to make your own version.
 
 ## Features
 
@@ -28,6 +33,31 @@ shadcn/ui, Better Auth, and Drizzle on Cloudflare D1.
 - **Command palette** (⌘K): jump to any record or view and create records.
 - CSV contact import with preview and validation, filtered CSV export, and
   Better Auth password and email OTP flows.
+
+Built with React, TypeScript, TanStack Start and Query, Tailwind CSS,
+shadcn/ui, Better Auth, and Drizzle on Cloudflare D1.
+
+## Making It Yours
+
+| What | Where |
+| --- | --- |
+| Landing page copy (hero, feature sections, closing call to action, footer) | `src/components/landing/` (`hero.tsx`, `features.tsx`, `landing-footer.tsx`) |
+| Figures in the landing page's product visuals | `src/components/landing/data.ts` |
+| GitHub link in the landing header | `REPO_URL` in `src/components/landing/github-button.tsx` |
+| Logo mark and wordmark | `src/components/brand.tsx`; icons in `public/` |
+| Page titles and descriptions | the `head` of each route in `src/routes/`, using `seo()` from `src/utils/seo.ts` |
+| Colors and theme tokens | `:root` in `src/styles/app.css` (`--vermilion` is the brand hue, `--primary` the button color) |
+| App, landing, and auth styles | `src/styles/crm.css`, `src/styles/landing.css`, `src/styles/auth.css` |
+| Pipeline stages, stage names, win probabilities, lost reasons, statuses | `src/lib/crm.ts` |
+| Demo and "Load sample data" records | `src/lib/crm-demo.ts` |
+| Upload size limit | `maxAttachmentBytes` in `src/lib/crm.ts` |
+| Database tables | `src/db/schema.ts` |
+
+To add a sample company, contact, deal, or task, add a row to the matching
+array in `src/lib/crm-demo.ts` (`companies`, `contacts`, `deals`, `tasks`). A
+comment above each array lists its columns, and rows link to each other by ID
+(for example a contact's company is `'co-northwind'`). The same rows feed the
+`/demo` workspace and the "Load sample data" button in a new workspace.
 
 ## Data And Access
 
@@ -56,8 +86,7 @@ lower. The local preview and the published app share the same Storage. The
 demo keeps no files, so attachments are off there.
 
 The first version deliberately omits email ingestion, integrations,
-multi-currency, and team permissions. Atomic CRM inspired the scope, but no
-upstream code was copied; there are no reused upstream MIT notices to preserve.
+multi-currency, and team permissions.
 
 ## CSV Format
 
@@ -72,12 +101,14 @@ Validation errors identify the failing row. Server validation runs again before
 a transactional import. Exports include company names and neutralize spreadsheet
 formula prefixes.
 
-## Verification
+## Commands
+
+The project uses pnpm.
 
 ```bash
-pnpm test
-pnpm run check-types
-pnpm run build
+pnpm test              # unit tests in tests/
+pnpm run check-types   # TypeScript
+pnpm run build         # type check and production build
 ```
 
 Layerwise manages the development server. Do not start or restart it manually.
@@ -96,20 +127,21 @@ pnpm run db:generate
 pnpm run db:migrate
 ```
 
-## Cloudflare Publishing
+## Publishing
 
-The existing Cloudflare Vite plugin produces `dist/server/index.js`, a generated
+The Cloudflare Vite plugin produces `dist/server/index.js`, a generated
 Worker configuration, and `dist/client/` assets. Publish through **Layerwise's
-Publish flow**, which supplies the project's production D1 binding and applies
-the generated Drizzle migrations. The source `wrangler.jsonc` intentionally uses
-`database_id: "local"`; do not deploy that placeholder as a production database.
+Publish flow**, which supplies the project's production D1 binding and Storage,
+and applies the generated Drizzle migrations. The source `wrangler.jsonc`
+intentionally uses `database_id: "local"`; do not deploy that placeholder as a
+production database.
 
 Production must receive a stable `BETTER_AUTH_SECRET`, the published origin as
 `BETTER_AUTH_URL`, and Layerwise's `AUTH_EMAIL_URL`. They belong only in the
-Worker environment, never `VITE_*` variables. Email delivery uses the existing
-`sendAuthEmail`; without its injected URL, local development logs OTPs. Password
-authentication works without an email provider. Do not change providers or
-introduce Supabase/PostgreSQL credentials.
+Worker environment, never `VITE_*` variables. Email delivery uses
+`sendAuthEmail` in `src/lib/auth-email.ts`; without `AUTH_EMAIL_URL`, it logs
+OTPs to the server console. Password authentication works without an email
+provider.
 
 For a separately provisioned Cloudflare environment, bind a real production D1,
 apply the same generated Drizzle migrations, configure those secrets, then use
