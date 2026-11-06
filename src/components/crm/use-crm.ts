@@ -5,11 +5,13 @@ import { demoData, demoUser } from '~/lib/crm-demo';
 import {
   addCrmNote,
   bulkUpdateCrmRecords,
+  deleteAttachment,
   deleteCrmRecord,
   getCrmData,
   importCrmContacts,
   loadSampleData,
   saveCrmRecord,
+  uploadAttachment,
 } from '~/lib/crm.functions';
 import {
   applyBulkEdit,
@@ -17,17 +19,21 @@ import {
   describeChange,
   entryMessage,
   noteTypeNames,
+  validateAttachmentUpload,
   validateBulkInput,
   validateNoteInput,
   validateRecord,
   type BulkInput,
   type CrmActivity,
+  type CrmAttachment,
   type CrmData,
   type CrmRecord,
   type NoteType,
 } from '~/lib/crm';
 
 export type CrmUser = { id: string; name: string; email: string };
+/** The demo lives in memory, so it never uploads files to Storage. */
+export const demoFilesHint = 'File attachments are off in the demo.';
 type BulkRequest = { input: BulkInput; kind: 'contact' | 'company' };
 
 /**
@@ -172,6 +178,33 @@ export function useCrm(user: CrmUser | null) {
     onSettled: refresh,
   });
 
+  // Nested under the workspace key so every workspace refresh also re-signs file links.
+  const attachmentsKey = (recordId: string) => [...queryKey, 'attachments', recordId];
+
+  const attach = useMutation({
+    mutationFn: async ({ recordId, file }: { recordId: string; file: File }) => {
+      if (!user) throw new Error(demoFilesHint);
+      const form = new FormData();
+      form.set('recordId', recordId);
+      form.set('file', file);
+      validateAttachmentUpload(form);
+      return uploadAttachment({ data: form });
+    },
+    onSuccess: (_result, { file }) => toast.success(`Attached ${file.name}`),
+    onError: fail,
+    onSettled: refresh,
+  });
+
+  const detach = useMutation({
+    mutationFn: async (file: CrmAttachment) => {
+      if (!user) throw new Error(demoFilesHint);
+      return deleteAttachment({ data: file.id });
+    },
+    onSuccess: (_result, file) => toast.success(`Deleted ${file.name}`),
+    onError: fail,
+    onSettled: refresh,
+  });
+
   const seed = useMutation({
     mutationFn: () => loadSampleData(),
     onSuccess: () => toast.success('Sample data added'),
@@ -179,7 +212,7 @@ export function useCrm(user: CrmUser | null) {
     onSettled: refresh,
   });
 
-  return { data, query, author, isDemo: !user, save, remove, addEntry, bulk, importContacts, seed };
+  return { data, query, author, isDemo: !user, save, remove, addEntry, bulk, importContacts, seed, attachmentsKey, attach, detach };
 }
 
 export type Crm = ReturnType<typeof useCrm>;

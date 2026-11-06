@@ -22,6 +22,8 @@ shadcn/ui, Better Auth, and Drizzle on Cloudflare D1.
   filters, plus multi-select bulk tagging, status changes, export, and delete.
 - **Record timeline**: notes, logged calls/emails/meetings, activity, and tasks
   in one feed on each record, with shareable `?view=…&record=…` URLs.
+- **Files**: attach files to contacts, companies, and deals from the record's
+  Files tab; open, download, or delete them. Uploads go to Layerwise Storage.
 - **Tasks**: grouped Overdue, Today, Upcoming, and Done, with quick add.
 - **Command palette** (⌘K): jump to any record or view and create records.
 - CSV contact import with preview and validation, filtered CSV export, and
@@ -43,7 +45,17 @@ sign-in. New authenticated workspaces start empty and can load sample data. Both
 `?view=contacts` (or `companies`, `deals`, `tasks`, `activity`) and `&record=<id>`
 for navigation and shareable detail links. Signing out returns to the landing page.
 
-The first version deliberately omits email ingestion, attachments, integrations,
+Attachments are stored in Layerwise Storage (`env.STORAGE`, typed in
+`src/lib/storage.ts`) under `workspaces/<workspace id>/attachments/<generated id>`.
+D1 keeps only the key, file name, size, type, and uploader; open and download
+links are short-lived signed URLs created when the Files tab loads. Files are
+private and checked against the session's workspace like every other
+operation. Deleting a file, a record, or records in bulk also deletes the stored
+files. Uploads are limited to 50 MB per file, or the plan's per-file limit if
+lower. The local preview and the published app share the same Storage. The
+demo keeps no files, so attachments are off there.
+
+The first version deliberately omits email ingestion, integrations,
 multi-currency, and team permissions. Atomic CRM inspired the scope, but no
 upstream code was copied; there are no reused upstream MIT notices to preserve.
 
@@ -76,7 +88,8 @@ Runtime diagnostics are in `.layerwise/dev-server.log`.
 Schema is defined in `src/db/schema.ts`. Generated migration history is in
 `drizzle/` and must not be manually edited. The
 `deal_owner_lost_reason_note_type` migration adds deal `owner` and
-`lost_reason` columns and a note `type` (note, call, email, or meeting).
+`lost_reason` columns and a note `type` (note, call, email, or meeting). The
+`record_attachments` migration adds the `crm_attachments` table.
 
 ```bash
 pnpm run db:generate

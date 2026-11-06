@@ -66,6 +66,7 @@
     .column-add,
     .prop-link,
     .related-row,
+    .file-main a,
     .next-step-name,
     .task-name,
     .chip,
@@ -1581,6 +1582,33 @@ th[aria-sort] .sort-button {
   display: flex;
   gap: 8px;
   margin-top: 12px;
+}
+.files-head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+.file-row {
+  gap: 6px;
+  padding-right: 2px;
+}
+.file-icon {
+  flex: none;
+  margin-right: 4px;
+  color: var(--ink-3);
+}
+.file-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding: 6px 0;
+}
+.file-main .related-name:hover {
+  text-decoration: underline;
+}
+.file-main .related-meta {
+  gap: 4px;
 }
 
 /* ---------- Dialogs ---------- */

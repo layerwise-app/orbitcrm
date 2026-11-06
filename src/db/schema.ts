@@ -129,6 +129,19 @@ export const crmActivities = sqliteTable('crm_activities', {
   author: text('author').notNull(),
   createdAt: integer('created_at').notNull(),
 }, (table) => [index('crm_activities_workspace_date').on(table.workspaceId, table.createdAt)]);
+
+// Files live in Layerwise Storage; D1 keeps the key and display metadata, never a URL.
+export const crmAttachments = sqliteTable('crm_attachments', {
+  id: text('id').primaryKey(),
+  workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  recordId: text('record_id').notNull().references(() => crmRecords.id, { onDelete: 'cascade' }),
+  key: text('key').notNull().unique(),
+  name: text('name').notNull(),
+  size: integer('size').notNull(),
+  contentType: text('content_type').notNull(),
+  uploader: text('uploader').notNull(),
+  createdAt: integer('created_at').notNull(),
+}, (table) => [index('crm_attachments_workspace_record').on(table.workspaceId, table.recordId)]);
 //
 // Example:
 //

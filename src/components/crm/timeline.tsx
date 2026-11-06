@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { ArrowRightLeft, CalendarDays, Check, CircleDot, Mail, Phone, Plus, StickyNote, Trophy, X } from 'lucide-react';
+import { ArrowRightLeft, CalendarDays, Check, CircleDot, FileX, Mail, Paperclip, Phone, Plus, StickyNote, Trophy, X } from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import { Checkbox } from '~/components/ui/checkbox';
 import { Spinner } from '~/components/ui/spinner';
@@ -9,7 +9,15 @@ import { Avatar, timeAgo } from './shared';
 import { useWorkspace } from './workspace-context';
 
 const entryIcons = { note: StickyNote, call: Phone, email: Mail, meeting: CalendarDays };
-const eventIcons: Record<string, typeof Check> = { won: Trophy, lost: X, stage: ArrowRightLeft, completed: Check, created: Plus };
+const eventIcons: Record<string, typeof Check> = {
+  won: Trophy,
+  lost: X,
+  stage: ArrowRightLeft,
+  completed: Check,
+  created: Plus,
+  attached: Paperclip,
+  detached: FileX,
+};
 const placeholders: Record<NoteType, string> = {
   note: 'Write a note…',
   call: 'What was discussed on the call?',

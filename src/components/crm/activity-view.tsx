@@ -1,5 +1,21 @@
 import { useState } from 'react';
-import { ArrowRightLeft, CalendarDays, Check, CircleDot, Mail, Pencil, Phone, Plus, StickyNote, Trash2, Trophy, Upload, X } from 'lucide-react';
+import {
+  ArrowRightLeft,
+  CalendarDays,
+  Check,
+  CircleDot,
+  FileX,
+  Mail,
+  Paperclip,
+  Pencil,
+  Phone,
+  Plus,
+  StickyNote,
+  Trash2,
+  Trophy,
+  Upload,
+  X,
+} from 'lucide-react';
 import { Button } from '~/components/ui/button';
 import type { CrmActivity } from '~/lib/crm';
 import { FilterSelect } from './filter-select';
@@ -19,6 +35,8 @@ const icons: Record<string, typeof Check> = {
   call: Phone,
   email: Mail,
   meeting: CalendarDays,
+  attached: Paperclip,
+  detached: FileX,
 };
 const filters = [
   { value: 'all', label: 'All activity' },
@@ -30,7 +48,7 @@ const matches: Record<string, (type: string) => boolean> = {
   all: () => true,
   interactions: (type) => ['note', 'call', 'email', 'meeting'].includes(type),
   deals: (type) => ['stage', 'won', 'lost'].includes(type),
-  records: (type) => ['created', 'updated', 'deleted', 'imported', 'completed'].includes(type),
+  records: (type) => ['created', 'updated', 'deleted', 'imported', 'completed', 'attached', 'detached'].includes(type),
 };
 const PAGE = 60;
 

@@ -1,20 +1,27 @@
 import { createServerFn } from '@tanstack/react-start';
+import { env } from 'cloudflare:workers';
 import { getRequestHeaders } from '@tanstack/react-start/server';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '~/db';
-import { crmActivities, crmNotes, crmRecords, workspaces } from '~/db/schema';
+import { crmActivities, crmAttachments, crmNotes, crmRecords, workspaces } from '~/db/schema';
 import { auth } from '~/lib/auth';
 import {
+  attachmentMessage,
+  attachmentName,
   bulkMessage,
   describeChange,
   entryMessage,
+  formatBytes,
+  validateAttachmentUpload,
   validateBulkInput,
   validateNoteInput,
   validateRecord,
+  type CrmAttachment,
   type CrmData,
   type CrmRecord,
 } from './crm';
 import { sampleWorkspace } from './crm-demo';
+import { getStorageErrorCode } from './storage';
 
 // Never accept a workspace ID from a client. Ownership comes only from the session.
 async function workspace() {
@@ -60,6 +67,40 @@ function activity(workspaceId: string, author: string, recordId: string | null, 
 // D1 caps bound parameters per statement at 100, so `IN (...)` lists are chunked.
 function chunk<T>(items: T[], size = 50) {
   return Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, (i + 1) * size));
+}
+
+// Generated IDs under a per-workspace prefix; the original file name stays in D1.
+const attachmentKey = (workspaceId: string, id: string) => `workspaces/${workspaceId}/attachments/${id}`;
+const attachmentScope = (workspaceId: string) => eq(crmAttachments.workspaceId, workspaceId);
+
+async function fileRecord(workspaceId: string, id: string) {
+  const record = await ownedRecord(workspaceId, id);
+  if (record.kind === 'task') throw new Error('Tasks do not have files.');
+  return record;
+}
+
+async function attachmentKeys(workspaceId: string, recordIds: string[]) {
+  const parts = await Promise.all(
+    chunk(recordIds).map((part) =>
+      db
+        .select({ key: crmAttachments.key })
+        .from(crmAttachments)
+        .where(and(attachmentScope(workspaceId), inArray(crmAttachments.recordId, part))),
+    ),
+  );
+  return parts.flat().map((row) => row.key);
+}
+
+// Runs after the D1 rows are gone, so a Storage failure is logged instead of
+// reporting a delete that already happened as failed.
+async function deleteStoredFiles(keys: string[]) {
+  for (const part of chunk(keys, 100)) {
+    try {
+      await env.STORAGE.delete(part);
+    } catch (error) {
+      console.error('Could not delete attachment files', part, error);
+    }
+  }
 }
 
 const validateId = (id: unknown) => {
@@ -113,6 +154,8 @@ export const deleteCrmRecord = createServerFn({ method: 'POST' })
   .handler(async ({ data: id }) => {
     const { space, user } = await workspace();
     const record = await ownedRecord(space.id, id);
+    const keys = await attachmentKeys(space.id, [id]);
+    // Notes and attachment rows cascade with the record; Storage files are removed after.
     await db.batch([
       db.update(crmRecords).set({ companyId: null }).where(and(inWorkspace(space.id), eq(crmRecords.companyId, id))),
       db.update(crmRecords).set({ contactId: null }).where(and(inWorkspace(space.id), eq(crmRecords.contactId, id))),
@@ -120,6 +163,7 @@ export const deleteCrmRecord = createServerFn({ method: 'POST' })
       db.delete(crmRecords).where(recordScope(space.id, id)),
       activity(space.id, user.name, null, `Deleted ${record.name}`, 'deleted'),
     ]);
+    await deleteStoredFiles(keys);
     return { success: true };
   });
 
@@ -154,6 +198,7 @@ export const bulkUpdateCrmRecords = createServerFn({ method: 'POST' })
     const type = data.action === 'delete' ? 'deleted' : 'updated';
     const log = activity(space.id, user.name, null, bulkMessage(data, rows.length, kind), type);
     if (data.action === 'delete') {
+      const keys = await attachmentKeys(space.id, ids);
       const linkField = kind === 'company' ? crmRecords.companyId : crmRecords.contactId;
       const unlink = kind === 'company' ? { companyId: null } : { contactId: null };
       const statements = chunk(ids).flatMap((part) => [
@@ -161,6 +206,7 @@ export const bulkUpdateCrmRecords = createServerFn({ method: 'POST' })
         db.delete(crmRecords).where(and(inWorkspace(space.id), inArray(crmRecords.id, part))),
       ]);
       await db.batch([log, ...statements]);
+      await deleteStoredFiles(keys);
       return { count: rows.length };
     }
     if (data.action === 'status') {
@@ -225,3 +271,85 @@ export const loadSampleData = createServerFn({ method: 'POST' }).handler(async (
   ]);
   return { count: sample.records.length };
 });
+
+/** Files on a contact, company, or deal, with short-lived signed links to open or download them. */
+export const listAttachments = createServerFn({ method: 'GET' })
+  .validator(validateId)
+  .handler(async ({ data: recordId }): Promise<CrmAttachment[]> => {
+    const { space } = await workspace();
+    await fileRecord(space.id, recordId);
+    const rows = await db
+      .select()
+      .from(crmAttachments)
+      .where(and(attachmentScope(space.id), eq(crmAttachments.recordId, recordId)))
+      .orderBy(desc(crmAttachments.createdAt));
+    return Promise.all(
+      rows.map(async ({ key, workspaceId: _workspace, ...file }) => {
+        const [url, downloadUrl] = await Promise.all([
+          env.STORAGE.signedUrl(key, { expiresIn: 3600 }),
+          env.STORAGE.signedUrl(key, { expiresIn: 3600, download: file.name }),
+        ]);
+        return { ...file, url, downloadUrl };
+      }),
+    );
+  });
+
+// Browser: form.set('recordId', id); form.set('file', file); uploadAttachment({ data: form }).
+export const uploadAttachment = createServerFn({ method: 'POST' })
+  .validator(validateAttachmentUpload)
+  .handler(async ({ data: { recordId, file } }) => {
+    const { space, user } = await workspace();
+    const record = await fileRecord(space.id, recordId);
+    const { maxFileBytes } = await env.STORAGE.usage();
+    if (file.size > maxFileBytes) throw new Error(`Your plan allows files up to ${formatBytes(maxFileBytes)}.`);
+    const id = crypto.randomUUID();
+    const key = attachmentKey(space.id, id);
+    const name = attachmentName(file.name);
+    const contentType = file.type || 'application/octet-stream';
+    try {
+      await env.STORAGE.put(key, file.stream(), { size: file.size, contentType, customMetadata: { name } });
+    } catch (error) {
+      const code = getStorageErrorCode(error);
+      if (code === 'StorageQuotaExceeded') throw new Error('Storage is full. Delete some files and try again.');
+      if (code === 'FileTooLarge') throw new Error('This file is too large.');
+      if (code === 'BlockedContent') throw new Error('This file can’t be uploaded.');
+      throw error;
+    }
+    try {
+      await db.batch([
+        db.insert(crmAttachments).values({
+          id,
+          workspaceId: space.id,
+          recordId,
+          key,
+          name,
+          size: file.size,
+          contentType,
+          uploader: user.name,
+          createdAt: Date.now(),
+        }),
+        activity(space.id, user.name, recordId, attachmentMessage('attached', name, record), 'attached'),
+      ]);
+    } catch (error) {
+      // Without its D1 row nothing can reach the file, so don't leave it in Storage.
+      await deleteStoredFiles([key]);
+      throw error;
+    }
+    return { id };
+  });
+
+export const deleteAttachment = createServerFn({ method: 'POST' })
+  .validator(validateId)
+  .handler(async ({ data: id }) => {
+    const { space, user } = await workspace();
+    const scope = and(attachmentScope(space.id), eq(crmAttachments.id, id));
+    const [file] = await db.select().from(crmAttachments).where(scope);
+    if (!file) throw new Error('This file does not exist in your workspace.');
+    const record = await ownedRecord(space.id, file.recordId);
+    await db.batch([
+      db.delete(crmAttachments).where(scope),
+      activity(space.id, user.name, record.id, attachmentMessage('detached', file.name, record), 'detached'),
+    ]);
+    await deleteStoredFiles([file.key]);
+    return { success: true };
+  });

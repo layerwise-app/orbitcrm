@@ -2,14 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   applyBulkEdit,
+  attachmentMessage,
+  attachmentName,
   blankRecord,
   bulkMessage,
   csvCell,
   describeChange,
   entryMessage,
+  formatBytes,
+  maxAttachmentBytes,
   money,
   moveDeal,
   parseCsv,
+  validateAttachmentUpload,
   validateBulkInput,
   validateCrmSearch,
   validateNoteInput,
@@ -110,4 +115,31 @@ test('sample data gets fresh IDs with every link remapped', () => {
   }
   assert.ok(sample.notes.every((note) => ids.has(note.recordId)));
   assert.ok(sample.activities.every((a) => a.recordId === null || ids.has(a.recordId)));
+});
+
+test('attachment uploads require a record and a non-empty file under the app limit', () => {
+  const form = (recordId, file) => {
+    const data = new FormData();
+    if (recordId !== undefined) data.set('recordId', recordId);
+    if (file) data.set('file', file);
+    return data;
+  };
+  const file = new File(['hello'], 'brief.pdf', { type: 'application/pdf' });
+  const valid = validateAttachmentUpload(form('r1', file));
+  assert.equal(valid.recordId, 'r1');
+  assert.equal(valid.file.name, 'brief.pdf');
+  assert.throws(() => validateAttachmentUpload(form('', file)), /record ID/);
+  assert.throws(() => validateAttachmentUpload(form('r1')), /Choose a file/);
+  assert.throws(() => validateAttachmentUpload(form('r1', new File([], 'empty.txt'))), /Choose a file/);
+  const huge = new File([new Uint8Array(maxAttachmentBytes + 1)], 'huge.bin');
+  assert.throws(() => validateAttachmentUpload(form('r1', huge)), /up to 50 MB/);
+});
+
+test('attachment names and sizes are display-safe', () => {
+  assert.equal(attachmentName('  q3\u0000\nplan.pdf '), 'q3plan.pdf');
+  assert.equal(attachmentName('\u0007'), 'Untitled file');
+  assert.equal(attachmentName('a'.repeat(300)).length, 200);
+  assert.deepEqual([512, 1536, 10 * 1024, 5 * 1024 ** 2, 50 * 1024 ** 2, 3 * 1024 ** 3].map(formatBytes), ['512 B', '1.5 KB', '10 KB', '5 MB', '50 MB', '3 GB']);
+  assert.equal(attachmentMessage('attached', 'brief.pdf', { name: 'Pilot' }), 'Attached brief.pdf to Pilot');
+  assert.equal(attachmentMessage('detached', 'brief.pdf', { name: 'Pilot' }), 'Removed brief.pdf from Pilot');
 });

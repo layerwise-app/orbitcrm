@@ -87,7 +87,7 @@ export function BulkBar({ kind, records, onClear }: { kind: 'contact' | 'company
             <AlertDialogTitle>
               Delete {records.length} {noun}?
             </AlertDialogTitle>
-            <AlertDialogDescription>Their notes are deleted too. Linked deals and tasks stay.</AlertDialogDescription>
+            <AlertDialogDescription>Their notes and files are deleted too. Linked deals and tasks stay.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

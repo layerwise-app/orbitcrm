@@ -90,6 +90,18 @@ export interface CrmActivity {
   author: string;
   createdAt: number;
 }
+/** A file on a contact, company, or deal. Signed links are created per request and never stored. */
+export interface CrmAttachment {
+  id: string;
+  recordId: string;
+  name: string;
+  size: number;
+  contentType: string;
+  uploader: string;
+  createdAt: number;
+  url: string;
+  downloadUrl: string;
+}
 export interface CrmData {
   workspace: { id: string; name: string };
   records: CrmRecord[];
@@ -229,6 +241,39 @@ export function entryMessage(type: NoteType, record: Pick<CrmRecord, 'name' | 'k
   if (type === 'note') return `Added a note to ${record.name}`;
   const article = type === 'email' ? 'an' : 'a';
   return `Logged ${article} ${type} ${record.kind === 'contact' ? 'with' : 'on'} ${record.name}`;
+}
+
+// Uploads pass through the app Worker, which carries about 90 MB per request.
+// The plan's per-file Storage limit can be lower; the server checks it too.
+export const maxAttachmentBytes = 50 * 1024 * 1024;
+
+export function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ['KB', 'MB', 'GB'];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  return `${value < 10 ? value.toFixed(1).replace(/\.0$/, '') : Math.round(value)} ${units[unit]}`;
+}
+
+/** Display name for an uploaded file: no control characters, at most 200 characters. */
+export const attachmentName = (name: string) => name.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 200) || 'Untitled file';
+
+export function validateAttachmentUpload(input: FormData): { recordId: string; file: File } {
+  if (!(input instanceof FormData)) throw new Error('Invalid upload.');
+  const recordId = input.get('recordId');
+  if (typeof recordId !== 'string' || !recordId || recordId.length > 100) throw new Error('Invalid record ID.');
+  const file = input.get('file');
+  if (!(file instanceof File) || !file.size) throw new Error('Choose a file to attach.');
+  if (file.size > maxAttachmentBytes) throw new Error(`Files can be up to ${formatBytes(maxAttachmentBytes)}.`);
+  return { recordId, file };
+}
+
+export function attachmentMessage(action: 'attached' | 'detached', fileName: string, record: Pick<CrmRecord, 'name'>) {
+  return action === 'attached' ? `Attached ${fileName} to ${record.name}` : `Removed ${fileName} from ${record.name}`;
 }
 
 export interface BulkInput {

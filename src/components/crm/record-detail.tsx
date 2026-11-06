@@ -17,6 +17,7 @@ import { Sheet, SheetContent, SheetTitle } from '~/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs';
 import { forecast, isOpenDeal, weightedValue } from '~/lib/crm-insights';
 import { dateLabel, money, openStages, stageNames, stageProbability, type CrmRecord } from '~/lib/crm';
+import { RecordFiles, useRecordFiles } from './record-files';
 import { RecordAvatar, StagePill, StatusPill, Tags, percent } from './shared';
 import { Timeline } from './timeline';
 import { useWorkspace } from './workspace-context';
@@ -26,6 +27,7 @@ const kindNames = { contact: 'Contact', company: 'Company', deal: 'Deal', task: 
 export function RecordSheet({ record, onClose }: { record: CrmRecord; onClose: () => void }) {
   const { data, byId, crm, actions } = useWorkspace();
   const [confirming, setConfirming] = useState(false);
+  const files = useRecordFiles(record);
   const company = record.companyId ? byId.get(record.companyId) : undefined;
   const related = data.records.filter(
     (r) => r.id !== record.id && (r.companyId === record.id || r.contactId === record.id || r.dealId === record.id),
@@ -107,6 +109,11 @@ export function RecordSheet({ record, onClose }: { record: CrmRecord; onClose: (
                 <TabsTrigger value='related'>
                   Related <span className='tab-count tnum'>{relatedAll.length}</span>
                 </TabsTrigger>
+                {record.kind !== 'task' && (
+                  <TabsTrigger value='files'>
+                    Files {files.data && <span className='tab-count tnum'>{files.data.length}</span>}
+                  </TabsTrigger>
+                )}
               </TabsList>
               <TabsContent value='timeline'>
                 <Timeline record={record} />
@@ -114,6 +121,11 @@ export function RecordSheet({ record, onClose }: { record: CrmRecord; onClose: (
               <TabsContent value='related'>
                 <RelatedList records={relatedAll} record={record} />
               </TabsContent>
+              {record.kind !== 'task' && (
+                <TabsContent value='files'>
+                  <RecordFiles record={record} />
+                </TabsContent>
+              )}
             </Tabs>
           </div>
         </SheetContent>
@@ -122,7 +134,7 @@ export function RecordSheet({ record, onClose }: { record: CrmRecord; onClose: (
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {record.name}?</AlertDialogTitle>
-            <AlertDialogDescription>Its notes are deleted too. Linked records stay.</AlertDialogDescription>
+            <AlertDialogDescription>{record.kind === 'task' ? 'Its notes are deleted too.' : 'Its notes and files are deleted too.'} Linked records stay.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
